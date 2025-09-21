@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industry Planner</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="left">
+      <button id="catalogBtn" class="primary">Catalog</button>
+      <select id="packSelect" aria-label="Select Game"></select>
+      <button id="newPackBtn" class="primary small">+ Game</button>
+    </div>
+    <div class="right">
+      <button id="exportAllBtn" class="secondary small">Export All</button>
+      <button id="importBtn" class="secondary small">Import</button>
+    </div>
+  </header>
+  <div id="app">
+    <aside id="catalog">
+      <div class="panel">
+        <input type="text" id="searchInput" placeholder="Search items…">
+        <button id="newItemBtn" class="small">+ Item</button>
+        <button id="newJobBtn" class="small">+ Job</button>
+      </div>
+      <div class="panel">
+        <h3>Items</h3>
+        <ul id="itemList"></ul>
+      </div>
+      <div class="panel">
+        <h3>Jobs</h3>
+        <ul id="jobList"></ul>
+      </div>
+    </aside>
+    <section id="content"></section>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
