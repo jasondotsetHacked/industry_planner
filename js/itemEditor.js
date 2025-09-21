@@ -4,7 +4,7 @@ import { buildItemSelect } from './utils.js';
 
 /**
  * Build an item editor card. Accepts an optional editingItem (object with id, name,
- * outputQty, time, inputs), the current packId, a list of items, and callbacks.
+ * outputQty, inputs), the current packId, a list of items, and callbacks.
  * onSave(item) will be called with the saved object when the user hits Save.
  * onCancel() will be called when the user cancels editing.
  */
@@ -28,9 +28,9 @@ export function buildItemEditor(editingItem, currentPackId, items, onSave, onCan
   nameRow.appendChild(nameLabel);
   nameRow.appendChild(nameInput);
   form.appendChild(nameRow);
-  // Output qty and time
-  const qtyTimeRow = document.createElement('div');
-  qtyTimeRow.className = 'form-row';
+  // Output quantity
+  const qtyRow = document.createElement('div');
+  qtyRow.className = 'form-row full';
   const qtyDiv = document.createElement('div');
   const qtyLabel = document.createElement('label');
   qtyLabel.textContent = 'Output Qty per Craft';
@@ -42,20 +42,8 @@ export function buildItemEditor(editingItem, currentPackId, items, onSave, onCan
   qtyInput.value = editingItem ? editingItem.outputQty : 1;
   qtyDiv.appendChild(qtyLabel);
   qtyDiv.appendChild(qtyInput);
-  const timeDiv = document.createElement('div');
-  const timeLabel = document.createElement('label');
-  timeLabel.textContent = 'Time per Craft (seconds)';
-  const timeInput = document.createElement('input');
-  timeInput.type = 'number';
-  timeInput.min = '0';
-  timeInput.step = '0.0001';
-  timeInput.placeholder = '0';
-  timeInput.value = editingItem ? editingItem.time : 0;
-  timeDiv.appendChild(timeLabel);
-  timeDiv.appendChild(timeInput);
-  qtyTimeRow.appendChild(qtyDiv);
-  qtyTimeRow.appendChild(timeDiv);
-  form.appendChild(qtyTimeRow);
+  qtyRow.appendChild(qtyDiv);
+  form.appendChild(qtyRow);
   // Inputs section
   const inputsSection = document.createElement('div');
   inputsSection.className = 'inputs-list';
@@ -120,7 +108,6 @@ export function buildItemEditor(editingItem, currentPackId, items, onSave, onCan
       return;
     }
     const outQty = parseFloat(qtyInput.value) || 1;
-    const time = parseFloat(timeInput.value) || 0;
     const inputs = [];
     Array.from(inputsContainer.children).forEach(row => {
       const sel = row.querySelector('select');
@@ -132,7 +119,7 @@ export function buildItemEditor(editingItem, currentPackId, items, onSave, onCan
     const obj = editingItem && editingItem.id ? editingItem : { id: generateId(), packId: currentPackId };
     obj.name = name;
     obj.outputQty = outQty;
-    obj.time = time;
+    delete obj.time;
     obj.inputs = inputs;
     await saveRecord('items', obj);
     if (onSave) onSave(obj);

@@ -11,7 +11,7 @@ let currentPackId = null;
 let currentView = null; // null | 'item' | 'job'
 let editingItem = null;
 let editingJob = null;
-let jobCart = { lines: [], stations: 1, speed: 1 };
+let jobCart = { lines: [] };
 
 /** Load packs from DB, creating sample packs if none exist. */
 async function loadPacks() {
@@ -23,13 +23,13 @@ async function loadPacks() {
     await saveRecord('packs', { id: eveId, name: 'EVE Online' });
     await saveRecord('packs', { id: mcId, name: 'Minecraft' });
     // EVE items
-    await saveRecord('items', { id: generateId(), packId: eveId, name: 'Tritanium', outputQty: 1, time: 0, inputs: [] });
-    await saveRecord('items', { id: generateId(), packId: eveId, name: 'Pyerite', outputQty: 1, time: 0, inputs: [] });
-    await saveRecord('items', { id: generateId(), packId: eveId, name: 'Capacitor Battery I', outputQty: 1, time: 60, inputs: [] });
+    await saveRecord('items', { id: generateId(), packId: eveId, name: 'Tritanium', outputQty: 1, inputs: [] });
+    await saveRecord('items', { id: generateId(), packId: eveId, name: 'Pyerite', outputQty: 1, inputs: [] });
+    await saveRecord('items', { id: generateId(), packId: eveId, name: 'Capacitor Battery I', outputQty: 1, inputs: [] });
     // Minecraft items
-    await saveRecord('items', { id: generateId(), packId: mcId, name: 'Wood Plank', outputQty: 4, time: 0, inputs: [] });
-    await saveRecord('items', { id: generateId(), packId: mcId, name: 'Stick', outputQty: 4, time: 0, inputs: [] });
-    await saveRecord('items', { id: generateId(), packId: mcId, name: 'Stone Pickaxe', outputQty: 1, time: 0, inputs: [] });
+    await saveRecord('items', { id: generateId(), packId: mcId, name: 'Wood Plank', outputQty: 4, inputs: [] });
+    await saveRecord('items', { id: generateId(), packId: mcId, name: 'Stick', outputQty: 4, inputs: [] });
+    await saveRecord('items', { id: generateId(), packId: mcId, name: 'Stone Pickaxe', outputQty: 1, inputs: [] });
     packs = await getAll('packs');
   }
   if (!currentPackId && packs.length) currentPackId = packs[0].id;
@@ -79,7 +79,7 @@ function renderCatalogue() {
   renderJobsList(jobs, jobList, (job) => {
     // open job
     editingJob = JSON.parse(JSON.stringify(job));
-    jobCart = { lines: [...editingJob.lines], stations: editingJob.stations || 1, speed: editingJob.speed || 1 };
+    jobCart = { lines: [...editingJob.lines] };
     currentView = 'job';
     renderContent();
     toggleCatalog(false);
@@ -130,13 +130,13 @@ function renderContent() {
       // onSave job
       await loadItemsAndJobs();
       editingJob = null;
-      jobCart = { lines: [], stations: 1, speed: 1 };
+      jobCart = { lines: [] };
       currentView = null;
       renderCatalogue();
       renderContent();
     }, () => {
       editingJob = null;
-      jobCart = { lines: [], stations: 1, speed: 1 };
+      jobCart = { lines: [] };
       currentView = null;
       renderContent();
     });
@@ -160,7 +160,7 @@ function setupEventListeners() {
     editingItem = null;
     editingJob = null;
     currentView = null;
-    jobCart = { lines: [], stations: 1, speed: 1 };
+    jobCart = { lines: [] };
     renderPackOptions(packs, currentPackId, packSelect);
     renderCatalogue();
     renderContent();
@@ -182,7 +182,7 @@ function setupEventListeners() {
   };
   // New item
   document.getElementById('newItemBtn').onclick = () => {
-    editingItem = { id: null, packId: currentPackId, name: '', outputQty: 1, time: 0, inputs: [] };
+    editingItem = { id: null, packId: currentPackId, name: '', outputQty: 1, inputs: [] };
     currentView = 'item';
     renderContent();
     toggleCatalog(false);
@@ -190,7 +190,7 @@ function setupEventListeners() {
   // New job
   document.getElementById('newJobBtn').onclick = () => {
     editingJob = null;
-    jobCart = { lines: [], stations: 1, speed: 1 };
+    jobCart = { lines: [] };
     currentView = 'job';
     renderContent();
     toggleCatalog(false);
@@ -233,7 +233,7 @@ function setupEventListeners() {
           await loadItemsAndJobs();
           editingItem = null;
           editingJob = null;
-          jobCart = { lines: [], stations: 1, speed: 1 };
+          jobCart = { lines: [] };
           currentView = null;
           renderPackOptions(packs, currentPackId, packSelect);
           renderCatalogue();

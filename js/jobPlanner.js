@@ -1,26 +1,26 @@
 // Job planner component
 import { saveRecord, generateId } from './db.js';
-import { expandItem, formatTree, formatTime, buildItemSelect } from './utils.js';
+import { expandItem, formatTree, buildItemSelect } from './utils.js';
 
-/** Plan a job given lines, stations, speed and items. Returns totals, baseTime, effectiveTime, trees. */
-export function planJob(lines, stations, speed, items) {
+/** Plan a job given lines and items. Returns totals and breakdown trees. */
+export function planJob(lines, items) {
   const totals = {};
-  let totalTime = 0;
   const trees = [];
+
   lines.forEach(line => {
     const res = expandItem(line.itemId, line.qty, items, new Set());
-    for (const [k, v] of Object.entries(res.totals)) {
-      totals[k] = (totals[k] || 0) + v;
+    Object.entries(res.totals).forEach(([id, qty]) => {
+      totals[id] = (totals[id] || 0) + qty;
+    });
+    if (res.tree && Object.keys(res.tree).length) {
+      trees.push(res.tree);
     }
-    totalTime += res.time;
-    trees.push(res.tree);
   });
-  const baseTime = totalTime;
-  const effectiveTime = baseTime / ((stations || 1) * (speed || 1));
-  return { totals, baseTime, effectiveTime, trees };
+
+  return { totals, trees };
 }
 
-/** Build a job planner card. Accepts an editingJob (optional), a jobCart object (lines, stations, speed), the items list,
+/** Build a job planner card. Accepts an editingJob (optional), a jobCart object (lines), the items list,
  * currentPackId and callbacks onSave(job), onCancel().
  */
 export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSave, onCancel) {
@@ -69,7 +69,7 @@ export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSav
     qty.value = line.qty || 1;
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.textContent = '×';
+    removeBtn.textContent = 'x';
     removeBtn.className = 'remove-line';
     removeBtn.onclick = () => {
       linesContainer.removeChild(row);
@@ -83,34 +83,17 @@ export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSav
   if (jobCart.lines && jobCart.lines.length) {
     jobCart.lines.forEach(line => appendLineRow(line));
   }
-  // Stations and speed
-  const settingsRow = document.createElement('div');
-  settingsRow.className = 'form-row';
-  const stationDiv = document.createElement('div');
-  const stationLabel = document.createElement('label');
-  stationLabel.textContent = 'Parallel Stations';
-  const stationInput = document.createElement('input');
-  stationInput.type = 'number';
-  stationInput.min = '1';
-  stationInput.value = jobCart.stations || 1;
-  stationDiv.appendChild(stationLabel);
-  stationDiv.appendChild(stationInput);
-  const speedDiv = document.createElement('div');
-  const speedLabel = document.createElement('label');
-  speedLabel.textContent = 'Speed Multiplier';
-  const speedInput = document.createElement('input');
-  speedInput.type = 'number';
-  speedInput.min = '0.0001';
-  speedInput.value = jobCart.speed || 1;
-  speedDiv.appendChild(speedLabel);
-  speedDiv.appendChild(speedInput);
-  settingsRow.appendChild(stationDiv);
-  settingsRow.appendChild(speedDiv);
-  form.appendChild(settingsRow);
   // Result display
   const resultBox = document.createElement('div');
   resultBox.id = 'planResults';
+  resultBox.textContent = 'Plan totals to see results.';
   form.appendChild(resultBox);
+  if (jobCart.lines && jobCart.lines.length) {
+    const initialPlan = planJob(jobCart.lines, items);
+    if (Object.keys(initialPlan.totals).length || initialPlan.trees.length) {
+      renderPlanResults(initialPlan);
+    }
+  }
   // Actions
   const actions = document.createElement('div');
   actions.style.display = 'flex';
@@ -127,9 +110,12 @@ export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSav
       const qtyVal = parseFloat(qtyField.value) || 0;
       if (id && qtyVal > 0) jobCart.lines.push({ itemId: id, qty: qtyVal });
     });
-    jobCart.stations = parseFloat(stationInput.value) || 1;
-    jobCart.speed = parseFloat(speedInput.value) || 1;
-    const plan = planJob(jobCart.lines, jobCart.stations, jobCart.speed, items);
+    if (!jobCart.lines.length) {
+      resultBox.innerHTML = '';
+      resultBox.textContent = 'Add at least one line to plan totals.';
+      return;
+    }
+    const plan = planJob(jobCart.lines, items);
     renderPlanResults(plan);
   };
   // Save
@@ -144,8 +130,6 @@ export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSav
       const qtyVal = parseFloat(qtyField.value) || 0;
       if (id && qtyVal > 0) jobCart.lines.push({ itemId: id, qty: qtyVal });
     });
-    jobCart.stations = parseFloat(stationInput.value) || 1;
-    jobCart.speed = parseFloat(speedInput.value) || 1;
     if (!jobCart.lines.length) {
       alert('Add at least one line');
       return;
@@ -158,8 +142,8 @@ export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSav
     const obj = editingJob && editingJob.id ? editingJob : { id: generateId(), packId: currentPackId };
     obj.name = name;
     obj.lines = jobCart.lines;
-    obj.stations = jobCart.stations;
-    obj.speed = jobCart.speed;
+    delete obj.stations;
+    delete obj.speed;
     await saveRecord('jobs', obj);
     if (onSave) onSave(obj);
   };
@@ -178,23 +162,36 @@ export function buildJobPlanner(editingJob, jobCart, items, currentPackId, onSav
   // Helper to render plan results
   function renderPlanResults(plan) {
     resultBox.innerHTML = '';
+    if (!plan) {
+      resultBox.textContent = 'No totals to display.';
+      return;
+    }
+    const hasTotals = Object.keys(plan.totals).length > 0;
+    const hasBreakdown = plan.trees.length > 0;
+    if (!hasTotals && !hasBreakdown) {
+      resultBox.textContent = 'No totals to display.';
+      return;
+    }
     const res = document.createElement('div');
     res.className = 'plan-results';
-    let html = '<strong>Totals:</strong><br>';
-    const lines = [];
-    Object.entries(plan.totals).forEach(([id, qty]) => {
-      const item = items.find(i => i.id === id);
-      lines.push(`${item ? item.name : id} × ${parseFloat(qty.toFixed(2))}`);
-    });
-    html += lines.join('<br>');
-    html += '<br><br>';
-    html += `<strong>Base time:</strong> ${formatTime(plan.baseTime)}<br>`;
-    html += `<strong>Effective time:</strong> ${formatTime(plan.effectiveTime)}<br>`;
-    html += '<br><strong>Breakdown:</strong><pre>';
-    plan.trees.forEach(tree => {
-      html += formatTree(tree);
-    });
-    html += '</pre>';
+    let html = '';
+    if (hasTotals) {
+      html += '<strong>Totals:</strong><br>';
+      const lines = [];
+      Object.entries(plan.totals).forEach(([id, qty]) => {
+        const item = items.find(i => i.id === id);
+        lines.push(`${item ? item.name : id} x ${parseFloat(qty.toFixed(2))}`);
+      });
+      html += lines.join('<br>');
+    }
+    if (hasBreakdown) {
+      if (hasTotals) html += '<br><br>';
+      html += '<strong>Breakdown:</strong><pre>';
+      plan.trees.forEach(tree => {
+        html += formatTree(tree);
+      });
+      html += '</pre>';
+    }
     res.innerHTML = html;
     resultBox.appendChild(res);
   }

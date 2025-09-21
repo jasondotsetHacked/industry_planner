@@ -133,18 +133,30 @@ aside#catalog .panel {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.4rem 0.25rem;
+  gap: 0.35rem;
+  padding: 0.2rem 0.25rem;
   border-bottom: 1px solid #033e2a;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
 }
 
+#itemList li span, #jobList li span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
 #itemList li button, #jobList li button {
-  margin-left: 0.25rem;
+  margin-left: 0.15rem;
   background: transparent;
   border: none;
   color: var(--secondary-blue);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  padding: 0.1rem;
 }
 
 #itemList li button:hover, #jobList li button:hover {
